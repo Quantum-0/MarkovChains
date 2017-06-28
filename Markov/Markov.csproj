@@ -44,8 +44,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MarkovChains.cs" />
+    <Compile Include="AbstractMarkovGenerator.cs" />
+    <Compile Include="BiMarkovGenerator.cs" />
+    <Compile Include="Interfaces.cs" />
+    <Compile Include="InternalAndOther.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TrigramMarkovGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
