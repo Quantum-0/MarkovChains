@@ -8,6 +8,19 @@ using System.Text.RegularExpressions;
 
 namespace Markov
 {
+    public static class UpdateOldDatabase
+    {
+        public static void UpdateTrigramDB(string fname, string newfname)
+        {
+            //Later
+
+
+            // load file as HashSet<TriGram>
+            // remove [* word word]
+            // save file as TriGram[]
+        }
+    }
+
     [ProtoContract]
     [ProtoInclude(103, typeof(TriGram))]
     [ProtoInclude(102, typeof(BiGram))]
@@ -46,7 +59,7 @@ namespace Markov
 
     [ProtoContract]
     [Serializable]
-    internal class BiGram : NGram
+    public class BiGram : NGram
     {
         [ProtoMember(3)]
         public string Previous { get; protected set; }
@@ -97,7 +110,7 @@ namespace Markov
 
     [ProtoContract]
     [Serializable]
-    internal class TriGram : NGram, IEquatable<TriGram>
+    public class TriGram : NGram, IEquatable<TriGram>
     {
         [ProtoMember(3)]
         public string Previous { get; protected set; }
@@ -122,7 +135,7 @@ namespace Markov
 
         public TriGram(string preprev, string prev, string cur, char divider)
         {
-            if ((prev == null && cur == null) || (prev != null) && (preprev == null))
+            if ((prev == null && cur == null) || (cur == null && prev != null && preprev == null))
                 throw new ArgumentException();
 
             PrePrevious = preprev;
@@ -159,7 +172,7 @@ namespace Markov
             if (isStart())
                 return "START " + Current;
             else if (isEnd())
-                return Previous + _Divider + "END";
+                return PrePrevious + ' ' + Previous + _Divider + "END";
             else if (PrePrevious == null)
                 return "START " + Previous + _Divider + Current;
             else

@@ -9,66 +9,38 @@ namespace Markov
     /// <summary> Генератор текстов на основе марковских цепей из пар слов </summary>
     public class BiMarkovGenerator : MarkovGenerator
     {
-        /// <summary> Пары слов </summary>
-        private HashSet<BiGram> Pairs;
+        /// <summary> Минимальная длина предложения </summary>
+        protected override int MinSentenseLength { get; } = 3;
 
-        public BiMarkovGenerator()
+        /// <summary> Обучение на списке предложений </summary>
+        protected override void Learn(List<string> words, List<char> dividers)
         {
-            Pairs = new HashSet<BiGram>();
-        }
-
-        public override int GetNGramCount(int n)
-        {
-            if (n == 2)
-                return Pairs.Count(p => p.isFull());
-            else if (n == 1)
-                return Pairs.Count(p => p.isStart() || p.isEnd());
+            AddStart(words[0]);
+            if (dividers.Count == words.Count)
+                AddEnd(dividers.Last(), words.Last());
             else
-                return 0;
+                AddEnd(words.Last());
+
+            for (int i = 0; i < words.Count - 1; i++)
+            {
+                var first = words[i];
+                var second = words[i + 1];
+                var divider = dividers[i];
+                Add(divider, first, second);
+            }
         }
 
-        public string[] GetWords(string wordBefore)
+        /// <summary> Продолжение генерации текста после n-граммы <paramref name="start"/> </summary> <param name="start">Начальная N-грамма</param>
+        protected override string ContinueGeneratingText(NGram start)
         {
-            return Pairs.Where(w => w.Previous == wordBefore.ToLower()).Select(w => w.Current).ToArray();
-        }
-
-        private BiGram GetNextRandom(BiGram before)
-        {
-            if (before.isEnd())
-                return null;
-
-            return Pairs.Where(w => w.isNextFor(before)).OrderBy(w => Rnd.Next()).FirstOrDefault();
-        }
-
-        public string GetRandomWord(string wordBefore)
-        {
-            return GetWords(wordBefore).OrderBy(w => Rnd.Next()).FirstOrDefault();
-        }
-
-        public override string GenerateText(string startWord)
-        {
-            throw new NotImplementedException();
-        }
-
-        /*private string ContinueGeneratingText(NGram curword)
-        {
-            curword
-        }*/
-
-        public override string GenerateText()
-        {
-            //LinkedList<string> Text = new LinkedList<string>();
-            StringBuilder sb = new StringBuilder();
-            var curword = Pairs.Where(w => w.isStart()).OrderBy(w => Rnd.Next()).FirstOrDefault();
-            if (curword == null)
-                throw new NoStartWordsException();
+            var sb = new StringBuilder();
+            var curword = start;
 
             sb.Append(curword.Current.StartWithUpper());
             while (curword.Current != null)
             {
-                curword = GetNextRandom(curword);
-                //if (curword.Divider != ' ')
-                //Text.AddLast(curword.Divider.ToString());
+                curword = Ngrams.Where(w => w.isNextFor(curword, 1)).OrderBy(w => Rnd.Next()).FirstOrDefault();
+                
                 if (curword.Current != null)
                     switch (curword.Divider)
                     {
@@ -101,83 +73,48 @@ namespace Markov
 
             return sb.ToString();
         }
-
-        protected override void Learn(List<string> sentenses)
-        {
-            foreach (var sentense in sentenses)
-            {
-                var parsed = ParseSentence(sentense);
-
-                var words = parsed.Item1;
-                var dividers = parsed.Item2;
-
-                if (words.Count < 3)
-                    continue;
-
-                AddStart(words[0]);
-                if (dividers.Count == words.Count)
-                    AddEnd(dividers.Last(), words.Last());
-                else
-                    AddEnd(words.Last());
-
-                for (int i = 0; i < words.Count - 1; i++)
-                {
-                    var first = words[i];
-                    var second = words[i + 1];
-                    var divider = dividers[i];
-                    Add(divider, first, second);
-                }
-            }
-        }
-
+        
+        /// <summary> Добавление N-граммы, являющейся началом предложения </summary>
         protected override void AddStart(params string[] words)
         {
-            Pairs.Add(new BiGram(null, words[0], ' '));
+            if (words.Length != 1)
+                throw new ArgumentException();
+            Add(words);
         }
 
+        /// <summary> Добавление N-граммы, являющейся концом предложения </summary>
         protected override void AddEnd(char divider, params string[] words)
         {
-            Pairs.Add(new BiGram(words[0], null, divider));
+            if (words.Length != 1)
+                throw new ArgumentException();
+            Add(divider, words[0], null);
         }
-
+        
+        /// <summary> Добавление N-граммы </summary> <param name="divider">Символ - разделитель</param> <param name="words">Слова</param>
         protected override void Add(char divider, params string[] words)
         {
-            Pairs.Add(new BiGram(words[0], words[1], divider));
+            BiGram New;
+
+            if (words.Length == 2)
+                New = new BiGram(words[0], words[1], divider);
+            else if (words.Length == 1)
+                New = new BiGram(null, words[0], divider);
+            else
+                throw new ArgumentException();
+
+            Ngrams.Add(New);
         }
 
-        protected override IEnumerable<NGram> GetStartNGrams()
-        {
-            return Pairs.Where(p => p.isStart());
-        }
-
-        protected override IEnumerable<NGram> GetEndNGrams()
-        {
-            return Pairs.Where(p => p.isEnd());
-        }
-
+        /// <summary> Сохранение в файл </summary> <param name="filename">Путь к файлу</param>
         public override void SaveToFile(string filename)
         {
-            _SaveToFile<HashSet<BiGram>>(filename, Pairs);
+            _SaveToFile<BiGram[]>(filename, Ngrams.Cast<BiGram>().ToArray());
         }
 
+        /// <summary> Загрузка из файла </summary> <param name="filename">Путь к файлу</param>
         public override void LoadFromFile(string filename)
         {
-            Pairs = _LoadFromFile<HashSet<BiGram>>(filename);
-        }
-
-        public override void Clear()
-        {
-            Pairs.Clear();
-        }
-
-        public override void Union(IExtendedMarkovGenerator other)
-        {
-            Pairs.UnionWith(((BiMarkovGenerator)other).Pairs);
-        }
-
-        public override int GetNGramCount()
-        {
-            return Pairs.Count;
+            Ngrams = new HashSet<NGram>(_LoadFromFile<BiGram[]>(filename));
         }
     }
 }

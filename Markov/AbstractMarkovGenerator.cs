@@ -11,6 +11,8 @@ namespace Markov
     /// <summary> Базовый абстрактный генератор текста на основе марковский цепей </summary>
     public abstract class MarkovGenerator : IExtendedMarkovGenerator
     {
+        /// <summary> Минимальная длина предложения </summary>
+        protected abstract int MinSentenseLength {get;}
         /// <summary> База данных N-грам </summary>
         protected internal HashSet<NGram> Ngrams = new HashSet<NGram>();
         /// <summary> Используемый для случайностей генератор случайных чисел </summary>
@@ -47,8 +49,19 @@ namespace Markov
         public abstract void SaveToFile(string filename);
         public abstract void LoadFromFile(string filename);
 
-        /// <summary> Получение количества N-грамм в базе данных </summary> <param name="n">количество слов N-граммы</param> <returns>количество N-грамм</returns>
-        public abstract int GetNGramCount(int n);
+        public NGram[] ExtractAllNGrams()
+        {
+            return Ngrams.ToArray();
+        }
+
+        /// <summary> Получение количества N-грамм в базе данных </summary> <returns>количество N-грамм</returns>
+        public int GetNGramCount(int n)
+        {
+            lock(Sync)
+            {
+                return Ngrams.Count(t => t.Length == n);
+            }
+        }
 
         /// <summary> Получение количества начал предложения </summary> <returns>количество N-грамм</returns>
         public int GetStartNGramCount()
@@ -57,7 +70,10 @@ namespace Markov
         }
 
         /// <summary> Получение всех возможных начал предложения </summary> <returns>N-граммы</returns>
-        protected abstract IEnumerable<NGram> GetStartNGrams();
+        protected IEnumerable<NGram> GetStartNGrams()
+        {
+            return Ngrams.Where(n => n.isStart());
+        }
 
         /// <summary> Получение всех возможных слов, с которых может начинаться предложение </summary>
         public IEnumerable<string> GetStartWords()
@@ -72,7 +88,10 @@ namespace Markov
         }
 
         /// <summary> Получение всех возможных начал предложения </summary> <returns>N-граммы</returns>
-        protected abstract IEnumerable<NGram> GetEndNGrams();
+        protected IEnumerable<NGram> GetEndNGrams()
+        {
+            return Ngrams.Where(n => n.isEnd());
+        }
 
         /// <summary> Получение всех возможных слов, на которые может оканчиваться предложение </summary>
         public IEnumerable<string> GetEndWords()
@@ -189,10 +208,27 @@ namespace Markov
         }
 
         /// <summary> Генерация текста </summary> <returns>Сгенерированный текст</returns>
-        public abstract string GenerateText();
+        public string GenerateText()
+        {
+            var curword = Ngrams.Where(w => w.isStart()).OrderBy(w => Rnd.Next()).FirstOrDefault();
+            if (curword == null)
+                throw new NoStartWordsException();
 
-        /// <summary> Генерация текста с фиксированным началом </summary>
-        public abstract string GenerateText(string startWord);
+            return ContinueGeneratingText(curword);
+        }
+
+        protected abstract string ContinueGeneratingText(NGram curword);
+
+        /// <summary> Генерация текста, начинающегося с заданного слова </summary> <param name="startWord">Слово, с которого должно начинаться сгенерированное предложение</param>
+        public string GenerateText(string startWord)
+        {
+            startWord = startWord.ToLower();
+            var curword = Ngrams.Where(w => w.isStart() && w.Current.ToLower() == startWord).OrderBy(w => Rnd.Next()).FirstOrDefault();
+            if (curword == null)
+                return "";
+
+            return ContinueGeneratingText(curword);
+        }
 
         /// <summary> Добавление текста в бд </summary>
         public void LearnText(string text)
@@ -209,7 +245,24 @@ namespace Markov
         }
 
         /// <summary> Обучение на списке предложений </summary>
-        protected abstract void Learn(List<string> sentenses);
+        protected void Learn(List<string> sentenses)
+        {
+            foreach (var sentense in sentenses)
+            {
+                var parsed = ParseSentence(sentense);
+
+                var words = parsed.Item1;
+                var dividers = parsed.Item2;
+
+                if (words.Count < MinSentenseLength)
+                    continue;
+
+                Learn(words, dividers);
+            }
+        }
+
+        /// <summary> Обучение на предложении </summary>
+        protected abstract void Learn(List<string> words, List<char> dividers);
 
         /// <summary> Добавление N-граммы, являющейся началом предложения </summary>
         protected abstract void AddStart(params string[] words);
@@ -228,9 +281,26 @@ namespace Markov
         /// <summary> Добавление N-граммы со знаком </summary>
         protected abstract void Add(char divider, params string[] words);
 
-        public abstract void Union(IExtendedMarkovGenerator other);
+        public void Union(IExtendedMarkovGenerator other)
+        {
+            lock (Sync)
+            {
+                Ngrams.UnionWith((other as MarkovGenerator).Ngrams);
+            }
+        }
 
-        public abstract void Clear();
-        public abstract int GetNGramCount();
+        public void Clear()
+        {
+            Ngrams.Clear();
+        }
+
+        /// <summary> Получение количества N-грамм в базе данных </summary> <returns>количество N-грамм</returns>
+        public int GetNGramCount()
+        {
+            lock (Sync)
+            {
+                return Ngrams.Count;
+            }
+        }
     }
 }

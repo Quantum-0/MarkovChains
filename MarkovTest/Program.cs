@@ -13,13 +13,18 @@ namespace MarkovTest
     {
         static string teststr1 = "The quick brown fox jumps over the lazy dog! В чащах юга жил бы цитрус? Да, но фальшивый экземпляр!";
         static string teststr2 = "Любя, съешь щипцы, — вздохнёт мэр, — кайф жгуч. Эх, чужак! Общий съём цен шляп (юфть) — вдрызг! Эх, чужд кайф, сплющь объём вши, грызя цент.";
-        
+
+        static MarkovGenerator FabricMethod()
+        {
+            return new TrigramMarkovGenerator();
+        }
+
         static void UnionAndSerializationExample()
         {
             Console.WriteLine("union and serialization test");
 
-            IExtendedMarkovGenerator gen1 = new BiMarkovGenerator();
-            IExtendedMarkovGenerator gen2 = new BiMarkovGenerator();
+            IExtendedMarkovGenerator gen1 = FabricMethod();
+            IExtendedMarkovGenerator gen2 = FabricMethod();
 
             Parallel.For(0, 2, (i) =>
             {
@@ -64,8 +69,8 @@ namespace MarkovTest
 
 
             // Создаём генератор текста
-            IExtendedMarkovGenerator generator = new BiMarkovGenerator();
-            
+            IExtendedMarkovGenerator generator = FabricMethod();
+
             // Включаем замер памяти и времени
             GC.Collect();
             var before = GC.GetTotalMemory(false);
@@ -101,6 +106,8 @@ namespace MarkovTest
             GC.Collect(2, GCCollectionMode.Forced, true);
             after = GC.GetTotalMemory(false);
             Console.WriteLine("После очистки мусора: " + ((after - before) / 1024f) + " кб\n\n");
+
+            Console.WriteLine("\n\n\n{0}\n\n\n", string.Join("\n", (generator as MarkovGenerator).ExtractAllNGrams().Cast<TriGram>()));
             
             // Генерируем и выводим предложения
             for (int i = 0; i < 50; i++)
