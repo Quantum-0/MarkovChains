@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Markov", "Markov\Markov.csproj", "{8D1DE4FB-E4BA-4955-A7D0-430F48F24FDF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkovTest", "MarkovTest\MarkovTest.csproj", "{BCCBE866-1AEE-4C75-A687-9E34CA3E0C52}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VKMessagesDump", "VKMessagesDump\VKMessagesDump.csproj", "{F85F9FD4-BF40-4494-9942-86A470FA53A4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8D1DE4FB-E4BA-4955-A7D0-430F48F24FDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D1DE4FB-E4BA-4955-A7D0-430F48F24FDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D1DE4FB-E4BA-4955-A7D0-430F48F24FDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D1DE4FB-E4BA-4955-A7D0-430F48F24FDF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BCCBE866-1AEE-4C75-A687-9E34CA3E0C52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCCBE866-1AEE-4C75-A687-9E34CA3E0C52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCCBE866-1AEE-4C75-A687-9E34CA3E0C52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCCBE866-1AEE-4C75-A687-9E34CA3E0C52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F85F9FD4-BF40-4494-9942-86A470FA53A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F85F9FD4-BF40-4494-9942-86A470FA53A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F85F9FD4-BF40-4494-9942-86A470FA53A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F85F9FD4-BF40-4494-9942-86A470FA53A4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
