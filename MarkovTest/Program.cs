@@ -11,15 +11,15 @@ namespace MarkovTest
 {
     class Program
     {
+        static string teststr1 = "The quick brown fox jumps over the lazy dog! В чащах юга жил бы цитрус? Да, но фальшивый экземпляр!";
+        static string teststr2 = "Любя, съешь щипцы, — вздохнёт мэр, — кайф жгуч. Эх, чужак! Общий съём цен шляп (юфть) — вдрызг! Эх, чужд кайф, сплющь объём вши, грызя цент.";
+        
         static void UnionAndSerializationExample()
         {
-            var teststr1 = "The quick brown fox jumps over the lazy dog! В чащах юга жил бы цитрус? Да, но фальшивый экземпляр!";
-            var teststr2 = "Любя, съешь щипцы, — вздохнёт мэр, — кайф жгуч. Эх, чужак! Общий съём цен шляп (юфть) — вдрызг! Эх, чужд кайф, сплющь объём вши, грызя цент.";
-
             Console.WriteLine("union and serialization test");
 
-            IExtendedMarkovGenerator gen1 = new TrigramMarkovGenerator();
-            IExtendedMarkovGenerator gen2 = new TrigramMarkovGenerator();
+            IExtendedMarkovGenerator gen1 = new BiMarkovGenerator();
+            IExtendedMarkovGenerator gen2 = new BiMarkovGenerator();
 
             Parallel.For(0, 2, (i) =>
             {
@@ -29,7 +29,7 @@ namespace MarkovTest
                     Task.Delay(5).Wait();
                     gen1.LearnText(teststr1);
                     Console.WriteLine("gen1 finished learning");
-                    Console.WriteLine(gen1.GetNGramCount(3) + " learned");
+                    Console.WriteLine(gen1.GetNGramCount() + " learned");
                 }
                 else
                 {
@@ -37,7 +37,7 @@ namespace MarkovTest
                     Task.Delay(5).Wait();
                     gen2.LearnText(teststr2);
                     Console.WriteLine("gen2 finished learning");
-                    Console.WriteLine(gen2.GetNGramCount(3) + " learned");
+                    Console.WriteLine(gen2.GetNGramCount() + " learned");
                 }
             });
 
@@ -45,32 +45,37 @@ namespace MarkovTest
             gen1.Union(gen2);
             gen2.Clear();
 
-            Console.WriteLine(gen1.GetNGramCount(3) + " - total count (gen1)");
-            Console.WriteLine(gen2.GetNGramCount(3) + " - gen2");
+            Console.WriteLine(gen1.GetNGramCount() + " - total count (gen1)");
+            Console.WriteLine(gen2.GetNGramCount() + " - gen2");
             gen1.SaveToFile("test1.txt");
             Console.WriteLine("gen1 saved to file test1.txt");
             gen2.LoadFromFile("test1.txt");
             Console.WriteLine("gen2 loaded from file test1.txt");
             gen1.Clear();
 
-            Console.WriteLine(gen1.GetNGramCount(3) + " - cleared gen1");
-            Console.WriteLine(gen2.GetNGramCount(3) + " - loaded gen2");
+            Console.WriteLine(gen1.GetNGramCount() + " - cleared gen1");
+            Console.WriteLine(gen2.GetNGramCount() + " - loaded gen2");
         }
 
         static void Main(string[] args)
         {
 
-            // UnionAndSerializationExample();
+             UnionAndSerializationExample();
 
 
             // Создаём генератор текста
-            IExtendedMarkovGenerator generator = new TrigramMarkovGenerator();
+            IExtendedMarkovGenerator generator = new BiMarkovGenerator();
             
             // Включаем замер памяти и времени
             GC.Collect();
             var before = GC.GetTotalMemory(false);
             Stopwatch sw = new Stopwatch();
             sw.Start();
+
+            // Учимся
+            //generator.LearnText(teststr1);
+            //generator.LearnText(teststr2);
+            generator.LearnText("abc abd bcd bcd abc abd? abc add abb abd bcd abd acc abc!");
 
             // Загрузка данных из базы данных
             /*var fname = "database.db";

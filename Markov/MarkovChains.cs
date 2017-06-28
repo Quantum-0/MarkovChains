@@ -3,10 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Markov
 {
@@ -15,30 +13,6 @@ namespace Markov
      * Оно пока не доделано
      * 👀
      */
-
-    internal class WordPair
-    {
-        internal string FirstWord { get; private set; }
-        internal string SecondWord { get; private set; }
-        internal char Divider { get; private set; }
-        
-        public WordPair(string first, string second, char divider = ' ')
-        {
-            FirstWord = first;
-            SecondWord = second;
-            Divider = divider;
-        }
-
-        public override int GetHashCode()
-        {
-            return FirstWord?.GetHashCode() ?? 0;
-        }
-
-        public override string ToString()
-        {
-            return (FirstWord ?? "START") + ' ' + Divider + ' ' + (SecondWord ?? "END");
-        }
-    }
 
     [ProtoContract]
     [ProtoInclude(103, typeof(TriGram))]
@@ -91,6 +65,11 @@ namespace Markov
                 var w2 = Current == null;
                 return Convert.ToByte(w1) + Convert.ToByte(w2);
             }
+        }
+
+        private BiGram()
+        {
+
         }
 
         public BiGram(string prev, string cur, char divider)
@@ -221,25 +200,38 @@ namespace Markov
                     && PrePrevious == (other as TriGram).PrePrevious;
         }
     }
-
+    
     public class NoStartWordsException : Exception
     {
+        public NoStartWordsException() : base("База данных генератора пуста, не удалось сгенерировать предложение")
+        {
+
+        }
     }
 
+    /// <summary> Интерфейс генератора текста на основе марковский цепей </summary>
     public interface IMarkovGenerator
     {
+        /// <summary> Генерация текста с фиксированным первым словом </summary>
         string GenerateText(string startWord);
+        /// <summary> Генерация текста </summary>
         string GenerateText();
+        /// <summary> Обучение, на основе текста из потока </summary>
         void LearnText(Stream stream, Encoding encoding = null);
+        /// <summary> Обучение, на основе текста </summary>
         void LearnText(string text);
     }
 
+    /// <summary> Интерфейс объекта, способного сериализоваться и десериализоваться из файла </summary>
     public interface IFileSerializable
     {
+        /// <summary> Сохранение в файл </summary> <param name="filename">Путь к файлу</param>
         void SaveToFile(string filename);
+        /// <summary> Загрузка из файла </summary> <param name="filename">Путь к файлу</param>
         void LoadFromFile(string filename);
     }
 
+    /// <summary> Расширенный интерфейс генератора текста на основе марковский цепей </summary>
     public interface IExtendedMarkovGenerator : IMarkovGenerator, IFileSerializable
     {
         int GetNGramCount(int n);
@@ -479,56 +471,43 @@ namespace Markov
         public abstract int GetNGramCount();
     }
 
-    /// <summary>
-    /// Генератор текстов на основе марковских цепей из пар слов
-    /// </summary>
+    /// <summary> Генератор текстов на основе марковских цепей из пар слов </summary>
     public class BiMarkovGenerator : MarkovGenerator
     {
-        /// <summary>
-        /// Пары слов
-        /// </summary>
-        private HashSet<WordPair> Pairs;
+        /// <summary> Пары слов </summary>
+        private HashSet<BiGram> Pairs;
         
         public BiMarkovGenerator()
         {
-            Pairs = new HashSet<WordPair>();
+            Pairs = new HashSet<BiGram>();
         }
 
         public override int GetNGramCount(int n)
         {
             if (n == 2)
-                return Pairs.Count;
+                return Pairs.Count(p => p.isFull());
+            else if (n == 1)
+                return Pairs.Count(p => p.isStart() || p.isEnd());
             else
                 return 0;
         }
 
-        /// <summary>
-        /// Добавление биграммы
-        /// </summary>
-        /// <param name="first">Первое слово</param>
-        /// <param name="second">Второе слово</param>
-        /// <param name="divider">Разделитель</param>
-        /*public void Add(string first, string second, char divider = ' ')
-        {
-            Pairs.Add(new WordPair(first?.ToLower(), second?.ToLower(), divider));
-        } */
-
         public string[] GetWords(string wordBefore)
         {
-            return Pairs.Where(w => w.FirstWord == wordBefore.ToLower()).Select(w => w.SecondWord).ToArray();
+            return Pairs.Where(w => w.Previous == wordBefore.ToLower()).Select(w => w.Current).ToArray();
         }
 
-        private WordPair GetNextRandom(WordPair before)
+        private BiGram GetNextRandom(BiGram before)
         {
-            if (before.SecondWord == null)
+            if (before.isEnd())
                 return null;
 
-            return Pairs.Where(w => w.FirstWord == before.SecondWord).OrderBy(w => Rnd.Next()).FirstOrDefault();
+            return Pairs.Where(w => w.isNextFor(before)).OrderBy(w => Rnd.Next()).FirstOrDefault();
         }
 
         public string GetRandomWord(string wordBefore)
         {
-            return Pairs.Where(w => w.FirstWord == wordBefore.ToLower()).OrderBy(w => Rnd.Next()).FirstOrDefault()?.SecondWord;
+            return GetWords(wordBefore).OrderBy(w => Rnd.Next()).FirstOrDefault();
         }
 
         public override string GenerateText(string startWord)
@@ -545,40 +524,39 @@ namespace Markov
         {
             //LinkedList<string> Text = new LinkedList<string>();
             StringBuilder sb = new StringBuilder();
-            var curword = Pairs.Where(w => w.FirstWord == null).OrderBy(w => Rnd.Next()).FirstOrDefault();
+            var curword = Pairs.Where(w => w.isStart()).OrderBy(w => Rnd.Next()).FirstOrDefault();
             if (curword == null)
                 throw new NoStartWordsException();
 
-            sb.Append(curword.SecondWord.StartWithUpper());
-            while (curword.SecondWord != null)
+            sb.Append(curword.Current.StartWithUpper());
+            while (curword.Current != null)
             {
                 curword = GetNextRandom(curword);
                 //if (curword.Divider != ' ')
                 //Text.AddLast(curword.Divider.ToString());
-                if (curword.SecondWord != null)
+                if (curword.Current != null)
                 switch(curword.Divider)
                 {
                     case '-':
-                        sb.Append(" - " + curword.SecondWord);
+                        sb.Append(" - " + curword.Current);
                         break;
                     case ',':
-                        sb.Append(", " + curword.SecondWord);
+                        sb.Append(", " + curword.Current);
                         break;
                     case '.':
-                        sb.Append(". " + curword.SecondWord.StartWithUpper());
+                        sb.Append(". " + curword.Current.StartWithUpper());
                         break;
                     case ';':
-                        sb.Append("; " + curword.SecondWord);
+                        sb.Append("; " + curword.Current);
                         break;
                     case ' ':
-                        sb.Append(' ' + curword.SecondWord);
+                        sb.Append(' ' + curword.Current);
                         break;
                     case '\n':
-                        sb.Append(". " + curword.SecondWord.StartWithUpper());
+                        sb.Append(". " + curword.Current.StartWithUpper());
                         break;
                     default:
-                            //throw new Exception("Undefined Divider");
-                            sb.Append(curword.Divider + curword.SecondWord);
+                            sb.Append(curword.Divider + curword.Current);
                             break;
                 }
             }
@@ -619,37 +597,37 @@ namespace Markov
 
         protected override void AddStart(params string[] words)
         {
-            Pairs.Add(new WordPair(null, words[0]));
+            Pairs.Add(new BiGram(null, words[0], ' '));
         }
 
         protected override void AddEnd(char divider, params string[] words)
         {
-            Pairs.Add(new WordPair(words[0], null, divider));
+            Pairs.Add(new BiGram(words[0], null, divider));
         }
 
         protected override void Add(char divider, params string[] words)
         {
-            Pairs.Add(new WordPair(words[0], words[1], divider));
+            Pairs.Add(new BiGram(words[0], words[1], divider));
         }
 
         protected override IEnumerable<NGram> GetStartNGrams()
         {
-            throw new NotImplementedException();
+            return Pairs.Where(p => p.isStart());
         }
 
         protected override IEnumerable<NGram> GetEndNGrams()
         {
-            throw new NotImplementedException();
+            return Pairs.Where(p => p.isEnd());
         }
 
         public override void SaveToFile(string filename)
         {
-            _SaveToFile<HashSet<WordPair>>(filename, Pairs);
+            _SaveToFile<HashSet<BiGram>>(filename, Pairs);
         }
 
         public override void LoadFromFile(string filename)
         {
-            Pairs = _LoadFromFile<HashSet<WordPair>>(filename);
+            Pairs = _LoadFromFile<HashSet<BiGram>>(filename);
         }
 
         public override void Clear()
