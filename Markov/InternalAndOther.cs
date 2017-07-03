@@ -12,12 +12,24 @@ namespace Markov
     {
         public static void UpdateTrigramDB(string fname, string newfname)
         {
-            //Later
+            HashSet<TriGram> Old;
+            using (Stream stream = File.Open(fname, FileMode.Open))
+            {
+                Old = Serializer.Deserialize<HashSet<TriGram>>(stream);
+            }
 
+            TriGram[] New = Old.Where(t => t.PrePrevious != "*").ToArray();
 
-            // load file as HashSet<TriGram>
-            // remove [* word word]
-            // save file as TriGram[]
+            using (Stream stream = File.Open(newfname, FileMode.Create))
+            {
+                Serializer.Serialize<TriGram[]>(stream, New);
+            }
+
+            //test
+
+            var test = new TrigramMarkovGenerator();
+            test.LoadFromFile(newfname);
+            ;
         }
     }
 

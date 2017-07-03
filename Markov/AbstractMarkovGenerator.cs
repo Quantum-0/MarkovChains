@@ -30,8 +30,6 @@ namespace Markov
             {
                 using (Stream stream = File.Open(fname, FileMode.Create))
                 {
-                    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                    //binaryFormatter.Serialize(stream, obj);
                     Serializer.Serialize<T>(stream, obj);
                 }
             }
@@ -41,7 +39,6 @@ namespace Markov
         {
             using (Stream stream = File.Open(fname, FileMode.Open))
             {
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
                 return Serializer.Deserialize<T>(stream);
             }
         }
@@ -291,7 +288,10 @@ namespace Markov
 
         public void Clear()
         {
-            Ngrams.Clear();
+            lock (Sync)
+            {
+                Ngrams.Clear();
+            }
         }
 
         /// <summary> Получение количества N-грамм в базе данных </summary> <returns>количество N-грамм</returns>

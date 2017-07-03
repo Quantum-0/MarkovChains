@@ -37,6 +37,29 @@ namespace VKMessagesDump
             {
                 var test4 = client.Messages.GetHistory(new Citrina.StandardApi.Models.MessagesGetHistoryRequest() { AccessToken = token, PeerId = 2000000000 + item.ChatId, Count = 1 }).Result.Response;
                 var count = test4.Count ?? 0;
+
+                Console.WriteLine("Do you want to process " + count + " messages from chat \"" + item.Title + "\"");
+                var skip = false;
+                while (true)
+                {
+                    var key = Console.ReadKey(true);
+                    if (key.Key == ConsoleKey.Y)
+                        break;
+                    else if (key.Key == ConsoleKey.N)
+                    {
+                        skip = true;
+                        break;
+                    }
+                }
+
+                if (skip == true)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Skipped: " + item.Title + " (" + count + " messages)");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    continue;
+                }
+
                 Task.Delay(200).Wait();
                 int messages = 0;
                 Stopwatch stw = new Stopwatch();
@@ -52,9 +75,31 @@ namespace VKMessagesDump
 
                 for (int i = 0; i < count / 200; i++)
                 {
-                    Task.Delay(333).Wait();
-                    var test5 = client.Messages.GetHistory(new Citrina.StandardApi.Models.MessagesGetHistoryRequest() { AccessToken = token, PeerId = 2000000000 + item.ChatId, Rev = 1, Count = 200, Offset = 200 * i }).Result;
-                    var test6 = test5.Response.Items.Select(m => m.Body).Where(m => !string.IsNullOrWhiteSpace(m) && m.Length > 10).ToArray();
+                    string[] test6 = null;
+                    Citrina.StandardApi.ApiCall<Citrina.StandardApi.Models.MessagesGetHistoryRequest, Citrina.StandardApi.Models.MessagesGetHistoryResponse> test5 = null;
+
+
+                    var errors = 0;
+                    while (errors <= 3)
+                    {
+                        try
+                        {
+                            Task.Delay(333).Wait();
+                            test5 = client.Messages.GetHistory(new Citrina.StandardApi.Models.MessagesGetHistoryRequest() { AccessToken = token, PeerId = 2000000000 + item.ChatId, Rev = 1, Count = 200, Offset = 200 * i }).Result;
+                            test6 = test5.Response.Items.Select(m => m.Body).Where(m => !string.IsNullOrWhiteSpace(m) && m.Length > 10).ToArray();
+                            break;
+                        }
+                        catch
+                        {
+                            errors++;
+                            Console.WriteLine("Ошибка скачивания сообщений:");
+                            Console.WriteLine( test5.Error.Message );
+                            Task.Delay(1000 * errors*errors).Wait();
+                        }
+                    }
+                    if (errors == 4)
+                        continue;
+
                     lock (sync)
                     {
                         Console.Write((1 + i).ToString() + ")" + test6.Length.ToString() + " messages readed");

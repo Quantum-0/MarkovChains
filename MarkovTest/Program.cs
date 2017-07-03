@@ -64,8 +64,9 @@ namespace MarkovTest
 
         static void Main(string[] args)
         {
+            //UpdateOldDatabase.UpdateTrigramDB(@"C:\Users\Quantum\Downloads\Telegram Desktop\Database.db", "newdb.db");
 
-             UnionAndSerializationExample();
+            UnionAndSerializationExample();
 
 
             // Создаём генератор текста
