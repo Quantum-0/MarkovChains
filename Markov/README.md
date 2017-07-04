@@ -85,4 +85,4 @@ IExtendedMarkovGenerator - это расширеный интерфейс для
 
 ## Лицензия
 
-[MIT License](./LICENSE)
+[MIT License](../LICENSE)
