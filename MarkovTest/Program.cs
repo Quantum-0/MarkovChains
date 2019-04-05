@@ -81,14 +81,14 @@ namespace MarkovTest
             // Учимся
             //generator.LearnText(teststr1);
             //generator.LearnText(teststr2);
-            generator.LearnText("abc abd bcd bcd abc abd? abc add abb abd bcd abd acc abc!");
+            //generator.LearnText("abc abd bcd bcd abc abd? abc add abb abd bcd abd acc abc!");
 
             // Загрузка данных из базы данных
-            /*var fname = "database.db";
-            generator.LoadFromFile(fname);*/
+            var fname = @"db_оя.txt";
+            generator.LoadFromFile(fname);
 
             // Учимся по тексту из файла
-            /*var fname = @"messages_dump.txt";
+            /*var fname = @"db_оя.txt";
             using (var fs = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.Read))
                 generator.LearnText(fs);*/
 
@@ -108,7 +108,7 @@ namespace MarkovTest
             after = GC.GetTotalMemory(false);
             Console.WriteLine("После очистки мусора: " + ((after - before) / 1024f) + " кб\n\n");
 
-            Console.WriteLine("\n\n\n{0}\n\n\n", string.Join("\n", (generator as MarkovGenerator).ExtractAllNGrams().Cast<TriGram>()));
+            //Console.WriteLine("\n\n\n{0}\n\n\n", string.Join("\n", (generator as MarkovGenerator).ExtractAllNGrams().Cast<TriGram>()));
             
             // Генерируем и выводим предложения
             for (int i = 0; i < 50; i++)
